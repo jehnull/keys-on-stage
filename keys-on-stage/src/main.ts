@@ -1,35 +1,31 @@
-import { Application, Assets, Sprite } from "pixi.js";
+import { pixiCanvas } from "./pixi";
+import { notSupportedBrowserScreen, midiFailScreen } from "./midiErrorScreens";
+import { midiSuccess } from "./midi";
 
-(async () => {
-  // Create a new application
-  const app = new Application();
+async function keysOnStage() {
+  // check if browser supports MIDI
+  // if no, display error screen "notSupportedBrowserScreen()"
+  if (!navigator.requestMIDIAccess) {
+    console.error("MIDI not supported in this browser.");
+    notSupportedBrowserScreen();
+    return;
+  }
 
-  // Initialize the application
-  await app.init({ background: "#1099bb", resizeTo: window });
+  try {
+    // request MIDI access
+    // if yes, continue with all MIDI and PIXI stuff
+    const midiAccess = await navigator.requestMIDIAccess();
+    midiSuccess(midiAccess);
 
-  // Append the application canvas to the document body
-  document.getElementById("pixi-container")!.appendChild(app.canvas);
+    await pixiCanvas();
+    
+  } catch (error) {
+    if (error) {
+    //if no connection to MIDI, display error screen "midiFailScreen()"
+      midiFailScreen();
+      console.error("Could not connect MIDI");
+    }
+  }
+}
 
-  // Load the bunny texture
-  const texture = await Assets.load("/keys-on-stage/assets/bunny.png");
-
-  // Create a bunny Sprite
-  const bunny = new Sprite(texture);
-
-  // Center the sprite's anchor point
-  bunny.anchor.set(0.5);
-
-  // Move the sprite to the center of the screen
-  bunny.position.set(app.screen.width / 2, app.screen.height / 2);
-
-  // Add the bunny to the stage
-  app.stage.addChild(bunny);
-
-  // Listen for animate update
-  app.ticker.add((time) => {
-    // Just for fun, let's rotate mr rabbit a little.
-    // * Delta is 1 if running at 100% performance *
-    // * Creates frame-independent transformation *
-    bunny.rotation += 0.1 * time.deltaTime;
-  });
-})();
+keysOnStage();
